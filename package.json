@@ -1,0 +1,22 @@
+{
+  "name": "okex-stream-sample",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/you21979/okex-stream-sample.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/you21979/okex-stream-sample/issues"
+  },
+  "homepage": "https://github.com/you21979/okex-stream-sample#readme",
+  "dependencies": {
+    "ws": "^3.3.2"
+  }
+}
