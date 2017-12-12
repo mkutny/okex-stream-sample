@@ -50,6 +50,12 @@ class FuturesPublicStream {
                 depth : {
                     lastupdate : 0,
                 },
+                trade : {
+                    lastupdate : 0,
+                },
+                kline_1min : {
+                    lastupdate : 0,
+                },
             }
             return r
         }, {uptime : 0})
@@ -63,13 +69,26 @@ class FuturesPublicStream {
                 this.ctx[contract_type].ticker = data
                 this.onUpdated()
             }
+        case 'trade':
+            return (data) => {
+                data.lastupdate = process.uptime()
+                this.ctx[contract_type].trade = data
+                this.onUpdated()
+            }
         case 'depth_full':
             return (data) => {
                 data.lastupdate = process.uptime()
                 this.ctx[contract_type].depth = data
                 this.onUpdated()
             }
+        case 'kline_1min':
+            return (data) => {
+                data.lastupdate = process.uptime()
+                this.ctx[contract_type].kline_1min = data
+                this.onUpdated()
+            }
         }
+        // drop data
         return (data) => {
         }
     }

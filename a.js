@@ -13,9 +13,9 @@ const main = async () => {
     const ltc_fps = new FuturesPublicStream(constant.WS_URL_OKEX_FUTURES_API, "ltc")
     const eth_fps = new FuturesPublicStream(constant.WS_URL_OKEX_FUTURES_API, "eth")
     update(() => {
-        console.log(btc_fps.ctx)
-        console.log(ltc_fps.ctx)
-        console.log(eth_fps.ctx)
+//        console.log(btc_fps.ctx)
+//        console.log(ltc_fps.ctx)
+//        console.log(eth_fps.ctx)
     }, 1000)
 }
 
