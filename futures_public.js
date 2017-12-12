@@ -24,7 +24,7 @@ const initializeStream = (self) => {
         })
     });
     ws.on('close', () => {
-        ws.emit('stop')
+        self.onClosed()
     });
     ws.on('error', (e) => {
         ws.close()
@@ -34,6 +34,7 @@ const initializeStream = (self) => {
 
 class FuturesPublicStream {
     constructor(url, symbol){
+        this.is_reconnect = true
         this.symbol = symbol || "btc"
         this.depth_size = 60
         this.contract_types = [
@@ -93,6 +94,7 @@ class FuturesPublicStream {
         }
     }
     onConnected() {
+        console.log("connected: " + this.url)
         this.contract_types.forEach(contract_type => {
             addChannel( this.ws, builder.ticker("usd", this.symbol, contract_type), this.dispatch( "ticker", contract_type ) )
             addChannel( this.ws, builder.trade("usd", this.symbol, contract_type), this.dispatch( "trade", contract_type ) )
@@ -101,8 +103,20 @@ class FuturesPublicStream {
             addChannel( this.ws, builder.kline("usd", this.symbol, contract_type, "1hour"), this.dispatch( "kline_1hour", contract_type ) )
         })
     }
+    onClosed() {
+        console.log("closed")
+        this.ws = null
+        if(this.is_reconnect){
+            this.ws = initializeStream(this)
+        }
+    }
     onUpdated() {
         this.ctx.uptime = process.uptime()
+    }
+    close() {
+        if(this.ws){
+            this.ws.close()
+        }
     }
 }
 
