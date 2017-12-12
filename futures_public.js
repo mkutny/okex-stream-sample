@@ -70,12 +70,16 @@ class FuturesPublicStream {
                 this.onUpdated()
             }
         }
-        return (data) => {}
+        return (data) => {
+        }
     }
     onConnected() {
         this.contract_types.forEach(contract_type => {
             addChannel( this.ws, builder.ticker("usd", this.symbol, contract_type), this.dispatch( "ticker", contract_type ) )
+            addChannel( this.ws, builder.trade("usd", this.symbol, contract_type), this.dispatch( "trade", contract_type ) )
             addChannel( this.ws, builder.depth_full("usd", this.symbol, contract_type, this.depth_size), this.dispatch( "depth_full", contract_type ) )
+            addChannel( this.ws, builder.kline("usd", this.symbol, contract_type, "1min"), this.dispatch( "kline_1min", contract_type ) )
+            addChannel( this.ws, builder.kline("usd", this.symbol, contract_type, "1hour"), this.dispatch( "kline_1hour", contract_type ) )
         })
     }
     onUpdated() {
