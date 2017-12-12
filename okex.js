@@ -1,99 +1,89 @@
 const WebSocket = require('ws');
+const builder = require('./cmd_builder')
+
 const URL = "wss://real.okex.com:10440/websocket/okexapi"
 
-const _ticker = (symbol, contract) => ["ok_sub_futureusd", symbol, "ticker", contract].join('_')
-const _depth = (symbol, contract, size) => ["ok_sub_future", symbol, "depth", contract, size].join('_')
-const _addChannel = (channel) => ({
-    event:'addChannel',
-    channel:channel,
-})
-const addTicker = (ws, symbol, contract, subscriber) => {
-    const w = _addChannel(_ticker(symbol, contract))
-    if(subscriber) ws.on(w.channel, subscriber)
-    return ws.send(JSON.stringify(w))
-}
-const addDepth = (ws, symbol, contract, size, subscriber) => {
-    const w = _addChannel(_depth(symbol, contract, size))
-    if(subscriber) ws.on(w.channel, subscriber)
-    return ws.send(JSON.stringify(w))
-}
-
-
-const dispatch = (ws, cmd, data) => {
-    ws.emit(cmd, data)
-}
-
-const proc = (ws, msg) => {
-    msg.forEach(v => {
-        dispatch(ws, v.channel, v.data)
-    })
-}
-
-const main = (url, sec) => {
-    const ctx = {
-        uptime : 0,
-        lasttime : 0,
-        this_week : {},
-        next_week : {},
-        quarter : {},
+const addChannel = (ws, channel, subscriber) => {
+    const event_name = 'addChannel'
+    if(subscriber){
+        ws.on(channel, subscriber)
     }
-    const update = (ws, sec) => setTimeout(() => {
-        if(!result.update_flag) return;
-        ctx.uptime = process.uptime()
-        ws.emit("update", ctx)
-        update(ws, sec)
-    }, sec)
-    const ws = new WebSocket(url);
+    return ws.send(JSON.stringify({
+        event : event_name,
+        channel : channel,
+    }))
+}
+
+const initializeStream = (self) => {
+    const ws = new WebSocket(self.url);
     ws.on('open', () => {
-console.log(url)
-        addTicker(ws, "btc", "this_week", (data) => {
-console.log(data)
-            ctx['this_week'].ticker = data
-        })
-        addTicker(ws, "btc", "next_week", (data) => {
-console.log(data)
-            ctx['next_week'].ticker = data
-        })
-        addTicker(ws, "btc", "quarter", (data) => {
-console.log(data)
-            ctx['quarter'].ticker = data
-        })
-        addDepth(ws, "btc", "this_week", 20, (data) => {
-console.log(data)
-            ctx['this_week'].depth = data
-        })
-        addDepth(ws, "btc", "next_week", 60, (data) => {
-console.log(data)
-            ctx['next_week'].depth = data
-        })
-        addDepth(ws, "btc", "quarter", 60, (data) => {
-console.log(data)
-            ctx['quarter'].depth = data
-        })
-        update_flag = true 
-        update(ws, sec)
+        self.onConnected()
     });
     ws.on('message', (data) => {
-        ctx.lasttime = process.uptime()
-        proc(ws, JSON.parse(data));
+        const msg = JSON.parse(data)
+        msg.forEach(v => {
+            ws.emit(v.channel, v.data)
+        })
     });
     ws.on('close', () => {
-        update_flag = false
         ws.emit('stop')
     });
     ws.on('error', (e) => {
-        console.log("ws error ----------------")
-        console.log(e)
-        update_flag = false
         ws.close()
-        //ws.emit('stop')
     });
-
-    const result = {
-        update_flag : true,
-        ws : ws,
-    }
-    return result
+    return ws
 }
 
-module.exports = main
+class OKEXPublicStream {
+    constructor(url){
+        this.symbol = "btc"
+        this.depth_size = 60
+        this.contract_types = [
+            "this_week",
+            "next_week",
+            "quarter"
+        ]
+        this.url = url
+        this.ctx = this.contract_types.reduce((r,v)=>{
+            r[v] = {
+                ticker : {
+                    lastupdate : 0,
+                },
+                depth : {
+                    lastupdate : 0,
+                },
+            }
+            return r
+        }, {uptime : 0})
+        this.ws = initializeStream(this)
+    }
+    dispatch(name, contract_type) {
+        switch(name){
+        case 'ticker':
+            return (data) => {
+                data.lastupdate = process.uptime()
+                this.ctx[contract_type].ticker = data
+                this.onUpdated()
+            }
+        case 'depth_full':
+            return (data) => {
+                data.lastupdate = process.uptime()
+                this.ctx[contract_type].depth = data
+                this.onUpdated()
+            }
+        }
+        return (data) => {}
+    }
+    onConnected() {
+        this.contract_types.forEach(contract_type => {
+            addChannel( this.ws, builder.ticker("usd", this.symbol, contract_type), this.dispatch( "ticker", contract_type ) )
+            addChannel( this.ws, builder.depth_full("usd", this.symbol, contract_type, this.depth_size), this.dispatch( "depth_full", contract_type ) )
+        })
+    }
+    onUpdated() {
+        this.ctx.uptime = process.uptime()
+    }
+}
+
+module.exports = OKEXPublicStream
+
