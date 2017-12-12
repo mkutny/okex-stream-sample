@@ -1,8 +1,6 @@
 const WebSocket = require('ws');
 const builder = require('./cmd_builder')
 
-const URL = "wss://real.okex.com:10440/websocket/okexapi"
-
 const addChannel = (ws, channel, subscriber) => {
     const event_name = 'addChannel'
     if(subscriber){
@@ -34,9 +32,9 @@ const initializeStream = (self) => {
     return ws
 }
 
-class OKEXPublicStream {
-    constructor(url){
-        this.symbol = "btc"
+class FuturesPublicStream {
+    constructor(url, symbol){
+        this.symbol = symbol || "btc"
         this.depth_size = 60
         this.contract_types = [
             "this_week",
@@ -85,5 +83,5 @@ class OKEXPublicStream {
     }
 }
 
-module.exports = OKEXPublicStream
+module.exports = FuturesPublicStream
 
