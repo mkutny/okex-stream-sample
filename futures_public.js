@@ -32,6 +32,14 @@ const initializeStream = (self) => {
     return ws
 }
 
+const defaultStorage = (self, contract_type, name) => {
+    return (data) => {
+        data.lastupdate = process.uptime()
+        self.ctx[contract_type][name] = data
+        self.onUpdated()
+    }
+}
+
 class FuturesPublicStream {
     constructor(url, symbol){
         this.is_reconnect = true
@@ -43,21 +51,10 @@ class FuturesPublicStream {
             "quarter"
         ]
         this.url = url
-        this.ctx = this.contract_types.reduce((r,v)=>{
-            r[v] = {
-                ticker : {
-                    lastupdate : 0,
-                },
-                depth : {
-                    lastupdate : 0,
-                },
-                trade : {
-                    lastupdate : 0,
-                },
-                kline_1min : {
-                    lastupdate : 0,
-                },
-            }
+        this.ctx = this.contract_types.reduce((r, v)=> {
+            r[v] = {}
+            const name = ['ticker', 'depth', 'trade', 'kline_1min', 'kline_1hour']
+            name.forEach(k => { r[v][k] = { lastupdate : 0 } })
             return r
         }, {uptime : 0})
         this.ws = initializeStream(this)
@@ -65,29 +62,15 @@ class FuturesPublicStream {
     dispatch(name, contract_type) {
         switch(name){
         case 'ticker':
-            return (data) => {
-                data.lastupdate = process.uptime()
-                this.ctx[contract_type].ticker = data
-                this.onUpdated()
-            }
+            return defaultStorage(this, contract_type, name)
         case 'trade':
-            return (data) => {
-                data.lastupdate = process.uptime()
-                this.ctx[contract_type].trade = data
-                this.onUpdated()
-            }
+            return defaultStorage(this, contract_type, name)
         case 'depth_full':
-            return (data) => {
-                data.lastupdate = process.uptime()
-                this.ctx[contract_type].depth = data
-                this.onUpdated()
-            }
+            return defaultStorage(this, contract_type, name)
         case 'kline_1min':
-            return (data) => {
-                data.lastupdate = process.uptime()
-                this.ctx[contract_type].kline_1min = data
-                this.onUpdated()
-            }
+            return defaultStorage(this, contract_type, name)
+        case 'kline_1hour':
+            return defaultStorage(this, contract_type, name)
         }
         // drop data
         return (data) => {
